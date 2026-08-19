@@ -1,6 +1,6 @@
 --[[
     Experiment 17 [Visuals] - UI Library v11
-    Single-file LocalScript / client-side UI framework.
+    Single-file LocalScript / client-side UI framework. 
 
     Features:
       • Loading screen + particles + dim background
