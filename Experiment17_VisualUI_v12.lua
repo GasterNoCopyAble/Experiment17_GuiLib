@@ -2,7 +2,7 @@
     Experiment 17 [Visuals] - UI Library v12
     Single-file LocalScript / client-side UI framework.
 
-    Features:
+    Features: 
       • Loading screen + particles + dim background
       • Left tabs + top breadcrumb
       • Collapsible sections
