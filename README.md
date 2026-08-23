@@ -1,348 +1,338 @@
-Experiment 17 UI Library
+# Experiment 17 UI Library
 
-A dark, modular Roblox UI library built for visual-heavy scripts and configurable client tools.
+A dark modular Roblox UI library with desktop and mobile support, configurable animations, themes, gradients, localization, configs, startup prompts, notifications, keybinds, search, favorites, and reusable controls.
 
-Experiment 17 focuses on a clean black interface, violet accents, smooth animations, configurable performance tiers, themes, localization, configs, tooltips, DPI scaling, and reusable controls.
+Repository: `GasterNoCopyAble/Experiment17_GuiLib`
 
-Default font: Oswald
-Default menu key: RightShift
-Default theme: Violet
-Default language mode: Auto (Roblox)
+## Load
 
-Features
+```lua
+local Library = loadstring(game:HttpGet(
+    "https://raw.githubusercontent.com/GasterNoCopyAble/Experiment17_GuiLib/main/Experiment17.lua"
+))()
+```
 
-Dark black UI with violet accent and outline
+## Highlights
 
-Left-side tab navigation
+- Desktop + touch/mobile input
+- Draggable main window, watermark, keybind list, and mobile GUI button
+- Touch-friendly sliders with visible circular handles
+- Touch-friendly two-handle range slider
+- HSV color picker with mouse + touch support
+- Smaller notification layout on mobile
+- Search and Favorites in the topbar
+- Context menu for controls
+- Dependencies and conditional visibility
+- Config browser with save/load/delete/autoload
+- Startup questions and Yes/No confirmations
+- Built-in profile engine
+- 14 theme styles including animated RGB
+- 30 gradient presets + custom gradient colors
+- Animated gradient rotation, speed, angle, and intensity
+- Settings tab always remains the last sidebar tab
+- Roblox locale auto-detection
 
-Top breadcrumb:
+## Repository layout
 
-Experiment 17 [Visuals] > Current Tab
-
-Collapsible sections
-
-All sections closed by default
-
-Smooth and stepped control animations
-
-Menu open/close animations:
-
-Scale
-
-Slide
-
-Fade
-
-None
-
-Smooth window dragging with configurable follow speed
-
-Rebindable menu key
-
-DPI scaling
-
-Separate Function DPI scaling
-
-Text size control
-
-Automatic display fitting
-
-Config save/load/autoload
-
-Optional queue-on-teleport support
-
-Theme presets
-
-Live HSV color picker
-
-Roblox language auto-detection
-
-Manual language selection
-
-Watermark system
-
-Draggable watermark
-
-FPS display
-
-Ping display
-
-OS time display
-
-Function tooltips
-
-FPS / ping impact metadata
-
-Graphics-level requirements for individual controls
-
-Automatic disabling of functions when the selected graphics level becomes too low
-
-5-second loading screen
-
-Username + time-based greeting on startup
-
-Loading particles and background dim
-
-Unload and hide buttons
-
-Installation
-
-Put the library in your repository, for example:
-
-Experiment-17-UI-Library/
+```text
+Experiment17_GuiLib/
+├── Experiment17.lua          # stable loader
 ├── src/
-│   └── Experiment17.lua
-├── examples/
-│   └── example.lua
+│   └── v21/
+│       ├── part01.luau
+│       ├── ...
+│       └── part29.luau
 ├── README.md
-└── CHANGELOG.md
+└── Contact.txt
+```
 
-Load from GitHub
+`Experiment17.lua` is the public entry point. It downloads the ordered v21 source parts, joins them, compiles the result, and returns the library. Users normally only need the root loader URL.
 
-Replace USERNAME with your GitHub username:
+No assets, `.gitignore`, or license file are required for the library to work.
 
+---
+
+# Quick start
+
+```lua
 local Library = loadstring(game:HttpGet(
-    "https://raw.githubusercontent.com/USERNAME/Experiment-17-UI-Library/main/src/Experiment17.lua"
+    "https://raw.githubusercontent.com/GasterNoCopyAble/Experiment17_GuiLib/main/Experiment17.lua"
 ))()
 
-For development builds, you can keep a separate dev branch:
-
-local Library = loadstring(game:HttpGet(
-    "https://raw.githubusercontent.com/USERNAME/Experiment-17-UI-Library/dev/src/Experiment17.lua"
-))()
-
-Recommended branch layout:
-
-main    stable builds
-dev     development builds
-
-Quick Start
-
-local Library = loadstring(game:HttpGet(
-    "https://raw.githubusercontent.com/USERNAME/Experiment-17-UI-Library/main/src/Experiment17.lua"
-))()
-
-local MainTab = Library:CreateTab("Main")
-
-local General = MainTab:CreateSection("General", false)
+local Main = Library:CreateTab("Main")
+local General = Main:CreateSection("General", false)
 
 General:AddToggle({
-    Name = "Example Toggle",
+    Name = "Example",
     Flag = "ExampleToggle",
-
     Default = false,
     RequiredGraphics = "Low",
 
-    Description = "Example toggle description.",
+    Description = "Example function.",
     FPSImpact = 0,
     PingImpact = 0,
 
     Callback = function(Value)
-        print("Example Toggle:", Value)
+        print(Value)
     end,
 })
+```
 
-Tabs
+# Tabs and sections
 
-Create a new tab:
+```lua
+local Main = Library:CreateTab("Main")
+local Visuals = Library:CreateTab("Visuals")
+local Misc = Library:CreateTab("Misc")
+```
 
-local VisualsTab = Library:CreateTab("Visuals")
+The built-in Settings tab always stays after user-created tabs:
 
-Create multiple tabs:
+```text
+Main
+Visuals
+Misc
+Settings
+```
 
-local MainTab = Library:CreateTab("Main")
-local VisualsTab = Library:CreateTab("Visuals")
-local MiscTab = Library:CreateTab("Misc")
+Create a section:
 
-The library already includes its own Settings tab.
+```lua
+local Section = Main:CreateSection("General", false)
+```
 
-Sections
+`false` means closed by default. `true` means open by default.
 
-Create a collapsible section:
+# Toggle
 
-local Section = MainTab:CreateSection("General", false)
-
-The second argument controls whether the section is opened by default.
-
-false -- closed
-true  -- opened
-
-For the intended Experiment 17 layout, using false is recommended.
-
-Toggle
-
+```lua
 Section:AddToggle({
     Name = "Boxes",
-    Flag = "ESP_Boxes",
-
+    Flag = "Boxes",
     Default = false,
-    RequiredGraphics = "Low",
-
-    Description = "Draws a box around players.",
-    FPSImpact = {-4, -1},
-    PingImpact = 0,
-
     Callback = function(Value)
         print(Value)
     end,
 })
+```
 
-Slider
+# Slider
 
+Sliders have a visible circular handle and a larger invisible touch target.
+
+```lua
 Section:AddSlider({
-    Name = "Render Distance",
-    Flag = "RenderDistance",
-
-    Min = 100,
+    Name = "Distance",
+    Flag = "Distance",
+    Min = 0,
     Max = 5000,
     Default = 1500,
-    Decimals = 0,
-
-    RequiredGraphics = "Medium",
-
-    Description = "Maximum rendering distance.",
-    FPSImpact = {-8, -1},
-    PingImpact = 0,
-
     Callback = function(Value)
         print(Value)
     end,
 })
+```
 
-Dropdown / Choice
+# Range slider
 
+```lua
+Section:AddRangeSlider({
+    Name = "Distance Range",
+    Flag = "DistanceRange",
+    Min = 0,
+    Max = 5000,
+    Default = {100, 1500},
+    Callback = function(Value, Low, High)
+        print(Low, High)
+    end,
+})
+```
+
+# Dropdown
+
+```lua
 Section:AddChoice({
-    Name = "ESP Mode",
-    Flag = "ESPMode",
-
-    Values = {
-        "Normal",
-        "Outline",
-        "Glow",
-    },
-
+    Name = "Mode",
+    Flag = "Mode",
+    Values = {"Normal", "Outline", "Glow"},
     Default = "Normal",
-    RequiredGraphics = "Low",
-
     Callback = function(Value)
         print(Value)
     end,
 })
+```
 
-Choices open as a dropdown instead of cycling through values.
+# Multi dropdown
 
-Button
-
-Section:AddButton({
-    Name = "Reset Visuals",
-    ButtonText = "Reset",
-
-    RequiredGraphics = "Low",
-
-    Callback = function()
-        print("Reset")
+```lua
+Section:AddMultiDropdown({
+    Name = "ESP Parts",
+    Flag = "ESPParts",
+    Values = {"Box", "Name", "Health", "Distance", "Skeleton"},
+    Default = {"Box", "Name"},
+    Callback = function(Values)
+        print(Values)
     end,
 })
+```
 
-Input
+# Input
 
+```lua
 Section:AddInput({
-    Name = "Config Name",
-    Flag = "ConfigName",
+    Name = "Player Name",
+    Flag = "Target",
+    Default = "",
+    Placeholder = "username...",
+})
+```
 
-    Default = "default",
-    Placeholder = "config name",
+# Number input
 
-    RequiredGraphics = "Low",
+```lua
+Section:AddNumberInput({
+    Name = "Distance",
+    Flag = "DistanceNumber",
+    Min = 0,
+    Max = 5000,
+    Default = 1000,
+})
+```
 
-    Callback = function(Value)
-        print(Value)
+# Button
+
+```lua
+Section:AddButton({
+    Name = "Reset",
+    ButtonText = "Reset",
+    Callback = function()
+        print("reset")
     end,
 })
+```
 
-Keybind
+# Button group
 
-Section:AddKeybind({
-    Name = "Menu Key",
-    Flag = "MenuKey",
-
-    Default = "RightShift",
-    RequiredGraphics = "Low",
-
-    Callback = function(KeyName, KeyCode)
-        print(KeyName, KeyCode)
-    end,
+```lua
+Section:AddButtonGroup({
+    Name = "Actions",
+    Buttons = {
+        {Text = "Save", Callback = function() print("save") end},
+        {Text = "Load", Callback = function() print("load") end},
+    },
 })
+```
 
-Press the keybind control and then press a new keyboard key.
+# Color picker
 
-Escape cancels rebinding.
+The HSV picker supports mouse and touch.
 
-Color Picker
-
-Experiment 17 uses an HSV palette picker instead of RGB input fields.
-
+```lua
 Section:AddColorPicker({
     Name = "ESP Color",
     Flag = "ESPColor",
-
     Default = Color3.fromRGB(170, 100, 255),
-    RequiredGraphics = "Low",
-
     Callback = function(Color)
         print(Color)
     end,
 })
+```
 
-The picker includes:
+# Labels and status controls
 
-Saturation / value palette
+```lua
+Section:AddLabel("Simple text")
+```
 
-Hue strip
+```lua
+Section:AddParagraph({Text = "Longer information text."})
+```
 
-Live color preview
-
-Theme synchronization
-
-Separators
-
-Separators are intended for logical groups, not every function.
-
-Example:
-
-Section:AddChoice({
-    Name = "Control Motion",
-    Values = {"Smooth", "Stepped"},
-    Default = "Smooth",
+```lua
+local Progress = Section:AddProgressBar({
+    Name = "Loading",
+    Min = 0,
+    Max = 100,
+    Default = 0,
 })
+Progress:Set(75)
+```
 
-Section:AddChoice({
-    Name = "Open Animation",
-    Values = {"Scale", "Slide", "Fade", "None"},
-    Default = "Scale",
+```lua
+local Status = Section:AddStatus({Name = "Server", Default = "Ready"})
+Status:Set("Connected")
+```
+
+# Keybinds
+
+Section control:
+
+```lua
+Section:AddKeybind({
+    Name = "Fly",
+    Flag = "FlyKey",
+    Default = "F",
+    Mode = "Toggle",
+    OnTriggered = function(Enabled)
+        print(Enabled)
+    end,
 })
+```
 
+Standalone keybind:
+
+```lua
+local FlyBind = Library:CreateKeybind({
+    Name = "Fly",
+    Key = "F",
+    Mode = "Toggle",
+    Callback = function(Enabled)
+        print(Enabled)
+    end,
+})
+```
+
+Modes:
+
+```text
+Press
+Toggle
+Hold
+Always
+```
+
+# Dependencies
+
+```lua
 Section:AddSlider({
-    Name = "Animation Speed",
-    Min = 5,
-    Max = 50,
-    Default = 18,
+    Name = "Skeleton Thickness",
+    Flag = "SkeletonThickness",
+    DependsOn = "Skeleton",
+    Min = 1,
+    Max = 5,
+    Default = 2,
 })
+```
 
--- New group starts here
-Section:AddSeparator()
+Custom condition:
 
-Section:AddToggle({
-    Name = "Background Blur",
-    Default = true,
-})
+```lua
+EnabledWhen = function(Flags)
+    return Flags.Skeleton and Flags.TeamESP
+end
+```
 
-Use a separator when the next setting belongs to a different category.
+Visibility:
 
-Graphics Levels
+```lua
+VisibleWhen = function(Flags)
+    return Flags.AdvancedMode
+end
+```
 
-Experiment 17 supports seven graphics tiers:
+# Graphics levels
 
+```text
 Low
 LM
 Medium
@@ -350,203 +340,240 @@ MH
 High
 HE
 Epic
+```
 
-Each control can define the minimum required level:
-
+```lua
 RequiredGraphics = "High"
+```
 
-That means the function is available on:
+# Search and Favorites
 
-High
-HE
-Epic
+The topbar search checks control names and descriptions. Selecting a result opens the correct tab/section and scrolls to the control.
 
-and locked on:
+Right-click a control for:
 
-Low
-LM
-Medium
-MH
+```text
+Favorite / Remove Favorite
+Reset to Default
+Copy Value
+```
 
-Locked controls:
+# Notifications
 
-become darker
+```lua
+Library:Notify({
+    Title = "Config",
+    Text = "Configuration saved",
+    Type = "Success",
+    Duration = 4,
+})
+```
 
-cannot be interacted with
+Positions:
 
-display the required graphics tier
+```text
+Top Left
+Top Center
+Top Right
+Bottom Left
+Bottom Center
+Bottom Right
+```
 
-automatically disable themselves if they were active before the graphics preset was lowered
+Touch devices automatically use a much smaller notification layout.
 
-Example:
+# Startup questionnaire
 
-Section:AddToggle({
-    Name = "Volumetric Overlay",
-    Flag = "VolumetricOverlay",
+```lua
+Library:QueueStartupQuestion({
+    Title = {ru = "Профиль визуалов", en = "Visual profile"},
+    Question = {ru = "Чего вы добиваетесь визуалами?", en = "What do you want from the visuals?"},
+    Options = {
+        {Text = {ru = "Баланс", en = "Balance"}, Value = "Balanced"},
+        {Text = {ru = "Производительность", en = "Performance"}, Value = "Performance"},
+        {Text = {ru = "Красота", en = "Beauty"}, Value = "Beauty"},
+    },
+    Flag = "VisualProfile",
+})
+```
 
-    Default = false,
-    RequiredGraphics = "HE",
+Yes/No:
 
-    Callback = function(Value)
-        print(Value)
-    end,
+```lua
+Library:QueueStartupConfirm({
+    Question = {ru = "Включить жесткую оптимизацию?", en = "Enable aggressive optimization?"},
+    Flag = "AggressiveOptimization",
+    DependsOn = {VisualProfile = "Performance"},
+})
+```
+
+# Profiles
+
+Built-in:
+
+```text
+Performance
+Balanced
+Beauty
+Custom
+```
+
+Custom profile:
+
+```lua
+Library:RegisterProfile("Cinematic", {
+    Settings = {
+        GraphicsLevel = "Epic",
+        BlurEnabled = true,
+        AnimationMode = "Smooth",
+    },
+    Flags = {
+        Boxes = true,
+        Skeleton = true,
+    },
 })
 
-Function Tooltips
+Library:ApplyProfile("Cinematic")
+```
+
+# Themes
+
+```text
+Violet
+Mono
+Crimson
+Emerald
+Azure
+Gold
+Rose
+Ocean
+Midnight
+Sakura
+Arctic
+Sunset
+Cyber
+RGB
+```
+
+`RGB` enables animated accent/outline/hover colors. RGB speed is configurable in Settings.
+
+# Gradients
+
+Settings:
+
+```text
+Enable Gradients
+Gradient Preset
+Animate Gradient
+Gradient Speed
+Gradient Rotation
+Gradient Intensity
+Gradient Color A
+Gradient Color B
+```
+
+Presets:
+
+```text
+Violet Dream
+Purple Neon
+Blue Neon
+Ocean
+Aqua
+Emerald
+Lime
+Gold
+Amber
+Sunset
+Fire
+Crimson
+Rose
+Sakura
+Candy
+Cotton Candy
+Ice
+Arctic
+Midnight
+Galaxy
+Nebula
+Cyber
+Matrix
+Steel
+Silver
+Monochrome
+Black Violet
+Black Red
+Black Blue
+RGB
+Custom
+```
+
+The default gradient intensity is intentionally subtle so the interface stays dark and readable.
+
+# Mobile / touch
+
+Touch support includes:
+
+```text
+Main window dragging
+Watermark dragging
+Keybind-list dragging
+Mobile GUI button dragging
+Normal sliders
+Range sliders
+HSV color picker
+```
+
+Mobile button settings:
+
+```text
+Show Mobile Button
+Mobile Button Text
+Mobile Button Size
+Mobile Button Opacity
+Draggable Mobile Button
+Reset Mobile Button Position
+```
 
-Every control can include a description and estimated performance impact.
+The mobile button appears only after the loader/startup wizard is complete.
 
-Section:AddToggle({
-    Name = "Skeleton",
-    Flag = "Skeleton",
+# Watermark
 
-    Default = false,
-    RequiredGraphics = "High",
+```text
+Experiment 17 [Visuals] | Epic | 144 FPS | 38 ms | 20:15:22
+```
 
-    Description = "Draws lines between character joints.",
+Watermark dragging works with mouse and touch.
 
-    FPSImpact = {-10, -3},
-    PingImpact = 0,
+# Config system
 
-    Callback = function(Value)
-        print(Value)
-    end,
-})
+```text
+Experiment17/
+├── autoload.txt
+└── configs/
+    ├── default.json
+    ├── performance.json
+    └── visuals.json
+```
 
-On hover, the tooltip can show:
+Settings provides a config dropdown, so loading does not require typing the name manually.
 
-Skeleton
+Filesystem support depends on the environment exposing functions such as:
 
-Draws lines between character joints.
+```text
+writefile
+readfile
+isfile
+makefolder
+listfiles
+delfile
+```
 
-Graphics: High+ [AVAILABLE]
+# DPI and text scale
 
-FPS impact: -10 .. -3 FPS
-Ping impact: 0 ms
+DPI presets:
 
-You can also use text values:
-
-FPSImpact = "-5 .. -15 FPS"
-PingImpact = "+0 .. +3 ms"
-
-Performance impact values are metadata supplied by the script author. They are not guaranteed automatic benchmark results.
-
-Settings
-
-The built-in Settings tab contains:
-
-Interface
-
-Language
-
-Graphics Level
-
-Font
-
-Text Size
-
-DPI Scale
-
-Auto Fit To Display
-
-Function DPI
-
-Menu Keybind
-
-Corner Radius
-
-Background Blur
-
-Blur Strength
-
-Background Dim
-
-Dim Amount
-
-Animations
-
-Control Motion
-
-Smooth
-
-Stepped
-
-Open Animation
-
-Scale
-
-Slide
-
-Fade
-
-None
-
-Animation Speed
-
-Window Dragging
-
-Smooth
-
-Direct
-
-Drag Follow Speed
-
-Tooltips
-
-Function Tooltips
-
-Tooltip Delay
-
-Tooltip Follow Speed
-
-Theme
-
-Theme Preset
-
-Accent
-
-Background
-
-Outline
-
-Control Background
-
-Watermarks
-
-Enable Watermark
-
-Watermark Text
-
-Show Graphics Level
-
-Show FPS
-
-Show Ping
-
-Show OS Time
-
-Draggable Watermark
-
-Reset Watermark Position
-
-Configs
-
-Config Name
-
-Save Current Config
-
-Load Config
-
-Autoload Config
-
-Set As Autoload
-
-Queue On Teleport
-
-DPI Scaling
-
-Main UI DPI presets:
-
+```text
 175%
 150%
 125%
@@ -555,364 +582,34 @@ Main UI DPI presets:
 50%
 25%
 5%
+```
 
-100% is intentionally larger than the original early Experiment 17 layout.
+Default text scale:
 
-The library can automatically lower the effective DPI if the selected size does not fit the current display.
+```text
+150%
+```
 
-Function DPI
+# Languages
 
-Function DPI changes the width / visual size of controls inside a section without shrinking the section itself.
+Default mode:
 
-This creates a more nested layout where functions can be slightly smaller than their section header.
-
-Example presets:
-
-100%
-95%
-90%
-85%
-80%
-75%
-50%
-25%
-
-Fonts
-
-Default:
-
-Oswald
-
-Available built-in choices include:
-
-Oswald
-Gotham
-GothamMedium
-Code
-RobotoMono
-SourceSans
-
-Themes
-
-Built-in presets:
-
-Violet
-Mono
-Crimson
-Emerald
-
-The default style is:
-
-Background: black
-Accent: violet
-Outline: violet
-Font: Oswald
-
-Theme colors can also be edited manually with the HSV color picker.
-
-Changing a theme preset also refreshes theme-related color pickers.
-
-Languages
-
-The default mode is:
-
+```text
 Auto (Roblox)
+```
 
-The library checks:
+The library reads `LocalizationService.RobloxLocaleId`.
 
-LocalizationService.RobloxLocaleId
+Built-in languages include English, Russian, Ukrainian, Spanish, German, French, Portuguese, Polish, and Turkish. Unsupported locales fall back to English.
 
-and chooses a supported language automatically.
+# Hide / unload
 
-Current built-in languages:
-
-English
-Русский
-Українська
-Español
-Deutsch
-Français
-Português
-Polski
-Türkçe
-
-Unsupported Roblox locales fall back to English.
-
-Users can also select the language manually in:
-
-Settings > Interface > Language
-
-The selected language can be stored in configs.
-
-Startup Loader
-
-Experiment 17 shows a loading interface before opening the main UI.
-
-Current behavior:
-
-background dim
-
-particles
-
-loading progress
-
-minimum 5-second display time
-
-username greeting
-
-OS-time greeting
-
-config loading before the main UI opens
-
-Example:
-
-Experiment 17 [Visuals]
-
-Hello, PlayerName. Good morning.
-
-Applying configuration...
-
-The greeting changes based on local time.
-
-Watermark
-
-Example:
-
-Experiment 17 [Visuals] | Epic | 144 FPS | 42 ms | 18:32:10
-
-Available information:
-
-custom text
-
-graphics level
-
-FPS
-
-ping
-
-OS time
-
-The watermark can be dragged and its position can be stored in the config.
-
-Config System
-
-Controls that use a Flag can automatically participate in config saving.
-
-Example:
-
-Flag = "ESP_Boxes"
-
-Possible filesystem structure:
-
-Experiment17/
-├── autoload.txt
-└── configs/
-    ├── default.json
-    ├── legit.json
-    └── epic.json
-
-Config support depends on the environment exposing filesystem functions such as:
-
-writefile
-readfile
-isfile
-makefolder
-
-If they are unavailable, persistent file configs cannot be used.
-
-Teleport Autoload
-
-If the environment supports queue_on_teleport, Experiment 17 can queue itself for the next place.
-
-Recommended local path:
-
-Experiment17/visuals.lua
-
-Example loader behavior:
-
-loadstring(readfile("Experiment17/visuals.lua"))()
-
-Teleport persistence depends on the environment and is not a Roblox LocalScript feature by itself.
-
-Hide / Unload
-
-Bottom-left controls:
-
+```text
 [X] [_]
+```
 
-_
+`_` hides the main GUI. `X` unloads the library. On touch devices the floating mobile button can reopen the interface.
 
-Hides the interface.
-The configured menu key can show it again.
+# Contact
 
-X
-
-Unloads the library and disables active toggles so their callbacks can clean up effects.
-
-Public API Example
-
-local Library = loadstring(game:HttpGet(
-    "https://raw.githubusercontent.com/USERNAME/Experiment-17-UI-Library/main/src/Experiment17.lua"
-))()
-
-local Visuals = Library:CreateTab("Visuals")
-local ESP = Visuals:CreateSection("ESP", false)
-
-ESP:AddToggle({
-    Name = "Boxes",
-    Flag = "ESP_Boxes",
-
-    Default = false,
-    RequiredGraphics = "Low",
-
-    Description = "Draws 2D boxes around players.",
-    FPSImpact = {-4, -1},
-    PingImpact = 0,
-
-    Callback = function(Value)
-        print("Boxes:", Value)
-    end,
-})
-
-ESP:AddToggle({
-    Name = "Skeleton",
-    Flag = "ESP_Skeleton",
-
-    Default = false,
-    RequiredGraphics = "High",
-
-    Description = "Draws a skeleton using character joints.",
-    FPSImpact = {-10, -3},
-    PingImpact = 0,
-
-    Callback = function(Value)
-        print("Skeleton:", Value)
-    end,
-})
-
-ESP:AddSeparator()
-
-ESP:AddSlider({
-    Name = "Render Distance",
-    Flag = "ESP_Distance",
-
-    Min = 100,
-    Max = 5000,
-    Default = 1500,
-
-    RequiredGraphics = "Medium",
-
-    Callback = function(Value)
-        print("Distance:", Value)
-    end,
-})
-
-ESP:AddColorPicker({
-    Name = "ESP Color",
-    Flag = "ESP_Color",
-
-    Default = Color3.fromRGB(170, 100, 255),
-    RequiredGraphics = "Low",
-
-    Callback = function(Color)
-        print(Color)
-    end,
-})
-
-Recommended Repository Layout
-
-Experiment-17-UI-Library/
-├── src/
-│   └── Experiment17.lua
-│
-├── examples/
-│   ├── basic.lua
-│   ├── controls.lua
-│   └── visuals.lua
-│
-├── README.md
-└── CHANGELOG.md
-
-Screenshots
-
-Add screenshots to:
-
-assets/
-
-Then show them here:
-
-![Experiment 17 UI](assets/preview.png)
-
-Recommended screenshots:
-
-main Settings tab
-
-dropdown open
-
-color picker open
-
-loading screen
-
-watermark
-
-tooltip
-
-multiple themes
-
-Changelog
-
-Keep major updates inside CHANGELOG.md.
-
-Example:
-
-## v1.0.0
-
-- Initial public release
-- Tabs and collapsible sections
-- Toggle / Slider / Dropdown / Keybind / Input / Button
-- HSV color picker
-- Config system
-- Themes
-- Localization
-- Graphics levels
-- Tooltips
-- Watermark
-
-Versioning
-
-Recommended format:
-
-MAJOR.MINOR.PATCH
-
-Examples:
-
-1.0.0
-1.1.0
-1.1.1
-2.0.0
-
-Use:
-
-PATCH for fixes
-
-MINOR for new backwards-compatible features
-
-MAJOR for breaking API changes
-
-License
-
-Add a LICENSE file before publishing the repository.
-
-For an open-source UI library, the MIT License is a simple option if you want people to freely use, modify, and redistribute the library while keeping the copyright notice.
-
-Credits
-
-Experiment 17 UI Library
-
-Designed as a reusable Roblox UI framework for configurable visual scripts and client-side tools.
-
-Notes
-
-Experiment 17 is a UI framework. Features added through callbacks are implemented by the script using the library.
-
-The library itself provides the interface, controls, configuration system, themes, animations, localization, performance tiers, tooltips, and supporting UI systems.
+See `Contact.txt` in the repository.
