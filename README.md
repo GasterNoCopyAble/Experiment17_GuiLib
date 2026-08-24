@@ -242,7 +242,7 @@ Presets:SetTiles({
 A global default is also available in:
 
 ```text
-Settings > Tile Pages > Default Tiles Per Page
+Settings > Interface > Default Tiles Per Page
 ```
 
 Compatibility calls still exist:
