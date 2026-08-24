@@ -380,10 +380,19 @@ return function(Library)
     Library.DecorateTileSection = decorateSection
 
     local settingsTab = Library.SettingsTab
-    if settingsTab and type(settingsTab.CreateSection) == "function" then
-        local section = settingsTab:CreateSection("Tile Pages", false)
-        if section and type(section.AddSlider) == "function" then
-            local defaultTilesControl = section:AddSlider({
+    if settingsTab then
+        local interfaceSection = nil
+        for _, section in ipairs(settingsTab.Sections or {}) do
+            if section.LocaleKey == "Interface" then
+                interfaceSection = section
+                break
+            end
+        end
+
+        -- Keep Configs as the final Settings section. The tile default belongs
+        -- inside Interface instead of creating a new section after Configs.
+        if interfaceSection and type(interfaceSection.AddSlider) == "function" then
+            local defaultTilesControl = interfaceSection:AddSlider({
                 Name = "Default Tiles Per Page",
                 Flag = "UI_DefaultTilesPerPage",
                 Min = 1,
