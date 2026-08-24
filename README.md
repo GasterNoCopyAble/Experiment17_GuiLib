@@ -1,8 +1,8 @@
 # Experiment 17 UI Library
 
-A dark modular Roblox UI library with desktop and mobile support, configurable animations, themes, gradients, localization, configs, startup prompts, notifications, keybinds, search, favorites, and reusable controls.
+Dark modular Roblox UI library with desktop/mobile input, configs, themes, RGB, gradients, notifications, search, favorites, keybinds, profiles, startup prompts, and reusable controls.
 
-Repository: `GasterNoCopyAble/Experiment17_GuiLib`
+Current stable architecture: **v22**.
 
 ## Load
 
@@ -12,43 +12,42 @@ local Library = loadstring(game:HttpGet(
 ))()
 ```
 
-## Highlights
+## v22 changes
 
-- Desktop + touch/mobile input
-- Draggable main window, watermark, keybind list, and mobile GUI button
-- Touch-friendly sliders with visible circular handles
-- Touch-friendly two-handle range slider
-- HSV color picker with mouse + touch support
-- Smaller notification layout on mobile
-- Search and Favorites in the topbar
-- Context menu for controls
-- Dependencies and conditional visibility
-- Config browser with save/load/delete/autoload
-- Startup questions and Yes/No confirmations
-- Built-in profile engine
-- 14 theme styles including animated RGB
-- 30 gradient presets + custom gradient colors
-- Animated gradient rotation, speed, angle, and intensity
-- Settings tab always remains the last sidebar tab
-- Roblox locale auto-detection
+- Project split into logical `core/` and `modules/`
+- Main GUI bootstrap moved to `src/v22/core/Main.luau`
+- Legacy v21 source-window assembler isolated in `core/LegacyAssembler.luau`
+- Mobile, sliders, RGB, gradients, and tile pages are separate modules
+- Smaller mobile watermark text/shell
+- Slider handle no longer has the bright white outline
+- Active toggle switches now continue following animated RGB accent colors
+- Gradients are applied to outline strokes with a white base, so colors are no longer tinted by the previous stroke color
+- Gradient motion is updated continuously each rendered frame instead of looking like a slideshow
+- Tile controls redesigned as direct tab content with pages, image tiles, captions below tiles, and configurable tiles-per-page
 
 ## Repository layout
 
 ```text
 Experiment17_GuiLib/
-├── Experiment17.lua          # stable loader
-├── src/
-│   └── v21/
-│       ├── part01.luau
-│       ├── ...
-│       └── part29.luau
+├── Experiment17.lua
 ├── README.md
-└── Contact.txt
+├── Contact.txt
+└── src/
+    ├── v21/
+    │   └── part01.luau ... part29.luau
+    └── v22/
+        ├── core/
+        │   ├── Main.luau
+        │   └── LegacyAssembler.luau
+        └── modules/
+            ├── Mobile.luau
+            ├── Sliders.luau
+            ├── RGB.luau
+            ├── Gradients.luau
+            └── Tiles.luau
 ```
 
-`Experiment17.lua` is the public entry point. It downloads the ordered v21 source parts, joins them, compiles the result, and returns the library. Users normally only need the root loader URL.
-
-No assets, `.gitignore`, or license file are required for the library to work.
+`Experiment17.lua` is intentionally tiny. It loads `core/Main.luau`; core builds the base GUI and then installs the v22 modules.
 
 ---
 
@@ -67,11 +66,6 @@ General:AddToggle({
     Flag = "ExampleToggle",
     Default = false,
     RequiredGraphics = "Low",
-
-    Description = "Example function.",
-    FPSImpact = 0,
-    PingImpact = 0,
-
     Callback = function(Value)
         print(Value)
     end,
@@ -86,22 +80,13 @@ local Visuals = Library:CreateTab("Visuals")
 local Misc = Library:CreateTab("Misc")
 ```
 
-The built-in Settings tab always stays after user-created tabs:
-
-```text
-Main
-Visuals
-Misc
-Settings
-```
-
-Create a section:
+The built-in `Settings` tab always remains below user tabs.
 
 ```lua
 local Section = Main:CreateSection("General", false)
 ```
 
-`false` means closed by default. `true` means open by default.
+`false` = closed by default, `true` = open by default.
 
 # Toggle
 
@@ -118,7 +103,7 @@ Section:AddToggle({
 
 # Slider
 
-Sliders have a visible circular handle and a larger invisible touch target.
+Sliders support mouse + touch and use a compact circular handle without a separate bright outline.
 
 ```lua
 Section:AddSlider({
@@ -127,9 +112,6 @@ Section:AddSlider({
     Min = 0,
     Max = 5000,
     Default = 1500,
-    Callback = function(Value)
-        print(Value)
-    end,
 })
 ```
 
@@ -142,9 +124,6 @@ Section:AddRangeSlider({
     Min = 0,
     Max = 5000,
     Default = {100, 1500},
-    Callback = function(Value, Low, High)
-        print(Low, High)
-    end,
 })
 ```
 
@@ -156,9 +135,6 @@ Section:AddChoice({
     Flag = "Mode",
     Values = {"Normal", "Outline", "Glow"},
     Default = "Normal",
-    Callback = function(Value)
-        print(Value)
-    end,
 })
 ```
 
@@ -170,9 +146,6 @@ Section:AddMultiDropdown({
     Flag = "ESPParts",
     Values = {"Box", "Name", "Health", "Distance", "Skeleton"},
     Default = {"Box", "Name"},
-    Callback = function(Values)
-        print(Values)
-    end,
 })
 ```
 
@@ -184,18 +157,6 @@ Section:AddInput({
     Flag = "Target",
     Default = "",
     Placeholder = "username...",
-})
-```
-
-# Number input
-
-```lua
-Section:AddNumberInput({
-    Name = "Distance",
-    Flag = "DistanceNumber",
-    Min = 0,
-    Max = 5000,
-    Default = 1000,
 })
 ```
 
@@ -211,154 +172,141 @@ Section:AddButton({
 })
 ```
 
-# Button group
-
-```lua
-Section:AddButtonGroup({
-    Name = "Actions",
-    Buttons = {
-        {Text = "Save", Callback = function() print("save") end},
-        {Text = "Load", Callback = function() print("load") end},
-    },
-})
-```
-
 # Color picker
 
-The HSV picker supports mouse and touch.
+HSV color picker supports mouse and touch.
 
 ```lua
 Section:AddColorPicker({
     Name = "ESP Color",
     Flag = "ESPColor",
     Default = Color3.fromRGB(170, 100, 255),
-    Callback = function(Color)
-        print(Color)
-    end,
 })
 ```
 
-# Labels and status controls
+# Tile pages
+
+v22 tiles are **direct content of a tab**. They are not placed inside a normal section row.
 
 ```lua
-Section:AddLabel("Simple text")
-```
+local Presets = Visuals:AddTilePage({
+    Name = "Visual Presets",
+    TilesPerPage = 8,
+    Columns = 4,
+    TileSize = 82,
 
-```lua
-Section:AddParagraph({Text = "Longer information text."})
-```
-
-```lua
-local Progress = Section:AddProgressBar({
-    Name = "Loading",
-    Min = 0,
-    Max = 100,
-    Default = 0,
-})
-Progress:Set(75)
-```
-
-```lua
-local Status = Section:AddStatus({Name = "Server", Default = "Ready"})
-Status:Set("Connected")
-```
-
-# Keybinds
-
-Section control:
-
-```lua
-Section:AddKeybind({
-    Name = "Fly",
-    Flag = "FlyKey",
-    Default = "F",
-    Mode = "Toggle",
-    OnTriggered = function(Enabled)
-        print(Enabled)
-    end,
+    Tiles = {
+        {
+            Text = "Purple",
+            Image = "rbxassetid://123456789",
+            Value = "Purple",
+            Callback = function(Value)
+                print(Value)
+            end,
+        },
+        {
+            Text = "Blue",
+            Image = "rbxassetid://987654321",
+            Value = "Blue",
+            Callback = function(Value)
+                print(Value)
+            end,
+        },
+    },
 })
 ```
 
-Standalone keybind:
+A tile consists of a square image area and text below it.
+
+Change page:
 
 ```lua
-local FlyBind = Library:CreateKeybind({
-    Name = "Fly",
-    Key = "F",
-    Mode = "Toggle",
-    Callback = function(Enabled)
-        print(Enabled)
-    end,
+Presets:SetPage(2)
+```
+
+Change how many tiles are shown on one page:
+
+```lua
+Presets:SetTilesPerPage(12)
+```
+
+Replace tile data:
+
+```lua
+Presets:SetTiles({
+    {Text = "One", Image = "rbxassetid://1"},
+    {Text = "Two", Image = "rbxassetid://2"},
 })
 ```
 
-Modes:
+A global default is also available in:
 
 ```text
-Press
-Toggle
-Hold
-Always
+Settings > Tile Pages > Default Tiles Per Page
 ```
 
-# Dependencies
+Compatibility calls still exist:
 
 ```lua
-Section:AddSlider({
-    Name = "Skeleton Thickness",
-    Flag = "SkeletonThickness",
-    DependsOn = "Skeleton",
-    Min = 1,
-    Max = 5,
-    Default = 2,
-})
+Section:AddTileButtons({...})
+Section:AddTileButton({...})
 ```
 
-Custom condition:
+but in v22 they create direct tab tile content instead of stuffing square buttons inside a section control.
 
-```lua
-EnabledWhen = function(Flags)
-    return Flags.Skeleton and Flags.TeamESP
-end
-```
+# RGB theme
 
-Visibility:
-
-```lua
-VisibleWhen = function(Flags)
-    return Flags.AdvancedMode
-end
-```
-
-# Graphics levels
+The `RGB` style animates:
 
 ```text
-Low
-LM
-Medium
-MH
-High
-HE
-Epic
+Accent
+Outline
+Hover
+Active toggle switches
 ```
 
-```lua
-RequiredGraphics = "High"
-```
+Active toggles no longer freeze on the accent color from the moment they were enabled.
 
-# Search and Favorites
+# Gradients
 
-The topbar search checks control names and descriptions. Selecting a result opens the correct tab/section and scrolls to the control.
-
-Right-click a control for:
+Gradient settings remain in Settings:
 
 ```text
-Favorite / Remove Favorite
-Reset to Default
-Copy Value
+Enable Gradients
+Gradient Preset
+Animate Gradient
+Gradient Speed
+Gradient Rotation
+Gradient Intensity
+Gradient Color A
+Gradient Color B
 ```
+
+v22 applies decorative gradients to theme-bound outline `UIStroke` objects. The stroke is made white while the gradient is active, which prevents the selected gradient preset from being multiplied/tinted by the old outline color.
+
+The animation runs continuously per rendered frame.
+
+Normal UI gradients used by functional controls such as the HSV color picker are not deleted or replaced.
+
+# Mobile
+
+Touch support includes:
+
+```text
+Main window dragging
+Watermark dragging
+Keybind-list dragging
+Mobile GUI button dragging
+Normal sliders
+Range sliders
+HSV color picker
+```
+
+The watermark automatically uses a smaller font and shell on touch devices.
 
 # Notifications
+
+Touch devices use a smaller notification layout automatically.
 
 ```lua
 Library:Notify({
@@ -369,74 +317,21 @@ Library:Notify({
 })
 ```
 
-Positions:
+# Configs
+
+Config files use the executor filesystem when supported.
 
 ```text
-Top Left
-Top Center
-Top Right
-Bottom Left
-Bottom Center
-Bottom Right
-```
-
-Touch devices automatically use a much smaller notification layout.
-
-# Startup questionnaire
-
-```lua
-Library:QueueStartupQuestion({
-    Title = {ru = "Профиль визуалов", en = "Visual profile"},
-    Question = {ru = "Чего вы добиваетесь визуалами?", en = "What do you want from the visuals?"},
-    Options = {
-        {Text = {ru = "Баланс", en = "Balance"}, Value = "Balanced"},
-        {Text = {ru = "Производительность", en = "Performance"}, Value = "Performance"},
-        {Text = {ru = "Красота", en = "Beauty"}, Value = "Beauty"},
-    },
-    Flag = "VisualProfile",
-})
-```
-
-Yes/No:
-
-```lua
-Library:QueueStartupConfirm({
-    Question = {ru = "Включить жесткую оптимизацию?", en = "Enable aggressive optimization?"},
-    Flag = "AggressiveOptimization",
-    DependsOn = {VisualProfile = "Performance"},
-})
-```
-
-# Profiles
-
-Built-in:
-
-```text
-Performance
-Balanced
-Beauty
-Custom
-```
-
-Custom profile:
-
-```lua
-Library:RegisterProfile("Cinematic", {
-    Settings = {
-        GraphicsLevel = "Epic",
-        BlurEnabled = true,
-        AnimationMode = "Smooth",
-    },
-    Flags = {
-        Boxes = true,
-        Skeleton = true,
-    },
-})
-
-Library:ApplyProfile("Cinematic")
+Experiment17/
+├── autoload.txt
+└── configs/
+    ├── default.json
+    └── visuals.json
 ```
 
 # Themes
+
+Built-in styles include:
 
 ```text
 Violet
@@ -455,161 +350,12 @@ Cyber
 RGB
 ```
 
-`RGB` enables animated accent/outline/hover colors. RGB speed is configurable in Settings.
-
-# Gradients
-
-Settings:
-
-```text
-Enable Gradients
-Gradient Preset
-Animate Gradient
-Gradient Speed
-Gradient Rotation
-Gradient Intensity
-Gradient Color A
-Gradient Color B
-```
-
-Presets:
-
-```text
-Violet Dream
-Purple Neon
-Blue Neon
-Ocean
-Aqua
-Emerald
-Lime
-Gold
-Amber
-Sunset
-Fire
-Crimson
-Rose
-Sakura
-Candy
-Cotton Candy
-Ice
-Arctic
-Midnight
-Galaxy
-Nebula
-Cyber
-Matrix
-Steel
-Silver
-Monochrome
-Black Violet
-Black Red
-Black Blue
-RGB
-Custom
-```
-
-The default gradient intensity is intentionally subtle so the interface stays dark and readable.
-
-# Mobile / touch
-
-Touch support includes:
-
-```text
-Main window dragging
-Watermark dragging
-Keybind-list dragging
-Mobile GUI button dragging
-Normal sliders
-Range sliders
-HSV color picker
-```
-
-Mobile button settings:
-
-```text
-Show Mobile Button
-Mobile Button Text
-Mobile Button Size
-Mobile Button Opacity
-Draggable Mobile Button
-Reset Mobile Button Position
-```
-
-The mobile button appears only after the loader/startup wizard is complete.
-
-# Watermark
-
-```text
-Experiment 17 [Visuals] | Epic | 144 FPS | 38 ms | 20:15:22
-```
-
-Watermark dragging works with mouse and touch.
-
-# Config system
-
-```text
-Experiment17/
-├── autoload.txt
-└── configs/
-    ├── default.json
-    ├── performance.json
-    └── visuals.json
-```
-
-Settings provides a config dropdown, so loading does not require typing the name manually.
-
-Filesystem support depends on the environment exposing functions such as:
-
-```text
-writefile
-readfile
-isfile
-makefolder
-listfiles
-delfile
-```
-
-# DPI and text scale
-
-DPI presets:
-
-```text
-175%
-150%
-125%
-100%
-75%
-50%
-25%
-5%
-```
-
-Default text scale:
-
-```text
-150%
-```
-
 # Languages
 
-Default mode:
-
-```text
-Auto (Roblox)
-```
-
-The library reads `LocalizationService.RobloxLocaleId`.
+`Auto (Roblox)` reads `LocalizationService.RobloxLocaleId`.
 
 Built-in languages include English, Russian, Ukrainian, Spanish, German, French, Portuguese, Polish, and Turkish. Unsupported locales fall back to English.
 
-# Hide / unload
-
-```text
-[X] [_]
-```
-
-`_` hides the main GUI. `X` unloads the library. On touch devices the floating mobile button can reopen the interface.
-
 # Contact
 
-See `Contact.txt` in the repository.
+See `Contact.txt`.
