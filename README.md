@@ -21,10 +21,15 @@ local Library = loadstring(game:HttpGet(
 - Startup now downloads one core engine file plus the feature modules
 - Mobile, sliders, RGB, gradients, and tile pages are separate modules
 - Smaller mobile watermark text/shell
+- Desktop watermark keeps global text scaling and dynamically measures both width and height
 - Slider handle no longer has the bright white outline
-- Active toggle switches now continue following animated RGB accent colors
-- Gradients are applied to outline strokes with a white base, so colors are no longer tinted by the previous stroke color
-- Gradient motion is updated continuously each rendered frame instead of looking like a slideshow
+- Active toggle switches continue following animated RGB accent colors
+- RGB visual propagation is suspended while the main menu is hidden to reduce FPS cost during gameplay
+- Decorative gradients are created only as child `UIGradient` objects of outline `UIStroke` instances
+- Old frame/background gradients are removed by the v22 gradient module
+- Gradient strokes use a white base so preset colors are not tinted by the previous outline color
+- Gradient color sequences update only when settings/theme change; animation moves only gradient transform every frame
+- Hidden main-window gradient strokes are skipped while the menu is closed
 - Tile controls redesigned as direct tab content with pages, image tiles, captions below tiles, and configurable tiles-per-page
 - Old v21 source windows, `LegacyAssembler.luau`, and the temporary v22 source assembler were removed
 
@@ -268,6 +273,8 @@ Active toggle switches
 
 Active toggles no longer freeze on the accent color from the moment they were enabled.
 
+When the main GUI is hidden, RGB propagation to GUI bindings/toggles is suspended. The current hue state resumes on the next RGB update after the menu opens, avoiding continuous expensive control refreshes while playing.
+
 # Gradients
 
 Gradient settings remain in Settings:
@@ -283,9 +290,11 @@ Gradient Color A
 Gradient Color B
 ```
 
-v22 applies decorative gradients to theme-bound outline `UIStroke` objects. The stroke is made white while the gradient is active, which prevents the selected gradient preset from being multiplied/tinted by the old outline color.
+v22 decorative gradients now exist **only inside `UIStroke` objects** as `E17_StrokeGradientV22`. The module scans theme-bound outline strokes plus older border strokes that use the current outline color. Legacy gradients placed on panel/background GUI objects are destroyed.
 
-The animation runs continuously per rendered frame.
+A tracked `UIStroke` is rendered with a white base while the gradient is active, so the preset colors are not multiplied/tinted by the previous stroke color.
+
+The `ColorSequence` is rebuilt only when gradient/theme settings change. During animation, only `Rotation` and `Offset` move continuously, which avoids the old slideshow-like behavior and reduces unnecessary work.
 
 Normal UI gradients used by functional controls such as the HSV color picker are not deleted or replaced.
 
@@ -303,7 +312,7 @@ Range sliders
 HSV color picker
 ```
 
-The watermark automatically uses a smaller font and shell on touch devices.
+Phone layouts use a compact 9 px watermark label and 24 px shell height. Desktop does not force a watermark text size: it follows the global Text Scale setting and dynamically measures both the watermark width and height from the rendered text.
 
 # Notifications
 
