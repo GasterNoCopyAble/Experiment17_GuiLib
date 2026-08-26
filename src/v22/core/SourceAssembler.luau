@@ -1,10 +1,10 @@
 -- Experiment 17 v22 core source assembler
--- v22 keeps the stable base engine as internal source windows under core/source/.
--- Windows overlap for compatibility with the historical source snapshot, but
+-- v22 keeps the stable base engine as internal source parts under core/source/.
+-- Parts overlap for compatibility with the historical source snapshot, but
 -- there is no v21 runtime path or version dependency anymore.
 
 return function()
-    local BASE = "https://raw.githubusercontent.com/GasterNoCopyAble/Experiment17_GuiLib/main/src/v22/core/source/window"
+    local BASE = "https://raw.githubusercontent.com/GasterNoCopyAble/Experiment17_GuiLib/main/src/v22/core/source/part"
     local PARTS = {
         "01","02","03","04","05","06","07","08","09","10",
         "11","12","13","14","15","16","17","18","19","20",
@@ -24,7 +24,7 @@ return function()
             if ok and type(result) == "string" and #result > 0 then
                 sourceParts[index] = result
             elseif firstError == nil then
-                firstError = ok and ("empty core window " .. tostring(suffix)) or result
+                firstError = ok and ("empty core part " .. tostring(suffix)) or result
             end
 
             finished += 1
@@ -116,7 +116,7 @@ return function()
                 for lineIndex = 1, #nextLines do
                     merged[#merged + 1] = nextLines[lineIndex]
                 end
-                warn(string.format("[Experiment17] v22 core: no overlap at window %02d", index))
+                warn(string.format("[Experiment17] v22 core: no overlap at part %02d", index))
             end
         end
 
