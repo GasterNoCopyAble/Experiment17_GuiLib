@@ -1,6 +1,6 @@
--- Experiment 17 v22 - smooth outline gradients
--- Decorative gradients live on theme-bound UIStroke objects only.
--- Stroke color is forced to white while enabled so preset colors are not tinted.
+-- Experiment 17 v22 - UIStroke gradient renderer
+-- Decorative gradients are attached ONLY to UIStroke objects.
+-- Legacy background gradients registered by the base engine are removed here.
 
 return function(Library)
     local RunService = game:GetService("RunService")
@@ -9,26 +9,81 @@ return function(Library)
 
     local rawRefreshGradients = Library.RefreshGradients
     local rawRegisterGradient = Library.RegisterGradient
+    local rawRefreshTheme = Library.RefreshTheme
     local rawImportConfig = Library.ImportConfig
+
     local connections = {}
     local tracked = setmetatable({}, {__mode = "k"})
     local phase = 0
-    local syncTimer = 0
 
-    for _, gradient in ipairs(Library.GradientObjects or {}) do
-        if gradient and gradient.Parent then
-            gradient.Enabled = false
+    local function destroyLegacyBackgroundGradients()
+        for _, gradient in ipairs(Library.GradientObjects or {}) do
+            if gradient and gradient.Parent then
+                gradient:Destroy()
+            end
+        end
+        if Library.GradientObjects then
+            table.clear(Library.GradientObjects)
         end
     end
 
-    if type(rawRegisterGradient) == "function" then
-        function Library:RegisterGradient(object)
-            local gradient = rawRegisterGradient(self, object)
-            if gradient then
-                gradient.Enabled = false
-            end
-            return gradient
+    destroyLegacyBackgroundGradients()
+
+    -- v22 gradients are stroke-only. Prevent the old core helper from placing
+    -- new UIGradient instances on Frames/TextButtons.
+    function Library:RegisterGradient(_object)
+        return nil
+    end
+
+    local function colorDistance(a, b)
+        if typeof(a) ~= "Color3" or typeof(b) ~= "Color3" then
+            return math.huge
         end
+        return math.abs(a.R - b.R) + math.abs(a.G - b.G) + math.abs(a.B - b.B)
+    end
+
+    local function isThemeOutlineStroke(stroke)
+        for _, binding in ipairs(Library.ThemeBindings or {}) do
+            if binding.Object == stroke
+                and binding.Property == "Color"
+                and binding.Key == "Outline"
+            then
+                return true
+            end
+        end
+        return false
+    end
+
+    local function isGradientStroke(stroke)
+        if not stroke or not stroke:IsA("UIStroke") then
+            return false
+        end
+        if stroke:GetAttribute("E17NoGradient") == true then
+            return false
+        end
+        if stroke:GetAttribute("E17OutlineGradient") == true then
+            return true
+        end
+        if isThemeOutlineStroke(stroke) then
+            return true
+        end
+
+        -- Several older v22 strokes were created with Color = Theme.Outline
+        -- but were not registered through BindTheme. Pick those up too.
+        local outline = Library.Theme and Library.Theme.Outline
+        if outline and colorDistance(stroke.Color, outline) <= 0.075 then
+            return true
+        end
+
+        -- Decorative GUI borders explicitly use Border mode. Technical cursor
+        -- strokes in the HSV picker do not, so they remain untouched.
+        if stroke.ApplyStrokeMode == Enum.ApplyStrokeMode.Border
+            and stroke.Transparency < 0.96
+        then
+            return true
+        end
+
+        return false
     end
 
     local function getPresetColors()
@@ -49,11 +104,18 @@ return function(Library)
 
     local function buildSequence()
         local colors = getPresetColors()
-        local intensity = math.clamp(tonumber(Library.Settings.GradientIntensity) or 28, 0, 100) / 100
-        local points = {}
+        local intensity = math.clamp(
+            tonumber(Library.Settings.GradientIntensity) or 28,
+            0,
+            100
+        ) / 100
 
+        local points = {}
         for index, color in ipairs(colors) do
             local alpha = (#colors <= 1) and 0 or ((index - 1) / (#colors - 1))
+            -- The stroke itself is white while a gradient is enabled. Intensity
+            -- only blends the preset toward white; it never multiplies by the
+            -- old outline color.
             local finalColor = Color3.new(1, 1, 1):Lerp(color, intensity)
             points[#points + 1] = ColorSequenceKeypoint.new(alpha, finalColor)
         end
@@ -65,24 +127,11 @@ return function(Library)
         return ColorSequence.new(points)
     end
 
-    local function isOutlineStroke(stroke)
-        if not stroke or not stroke:IsA("UIStroke") then return false end
-
-        for _, binding in ipairs(Library.ThemeBindings or {}) do
-            if binding.Object == stroke
-                and binding.Property == "Color"
-                and binding.Key == "Outline"
-            then
-                return true
-            end
-        end
-
-        return false
-    end
-
     local function ensureGradient(stroke)
         local state = tracked[stroke]
-        if state then return state end
+        if state then
+            return state
+        end
 
         local gradient = stroke:FindFirstChild("E17_StrokeGradientV22")
         if not gradient then
@@ -97,28 +146,41 @@ return function(Library)
             OriginalColor = stroke.Color,
         }
         tracked[stroke] = state
+        stroke:SetAttribute("E17OutlineGradient", true)
         return state
     end
 
-    local function syncTracked()
-        for _, binding in ipairs(Library.ThemeBindings or {}) do
-            local object = binding.Object
-            if object and object.Parent and object:IsA("UIStroke")
-                and binding.Property == "Color"
-                and binding.Key == "Outline"
-            then
+    local function scanAll()
+        for _, object in ipairs(Root:GetDescendants()) do
+            if object:IsA("UIStroke") and isGradientStroke(object) then
                 ensureGradient(object)
             end
         end
     end
 
+    local function refreshOriginalColors()
+        for stroke, state in pairs(tracked) do
+            if stroke and stroke.Parent then
+                -- RefreshTheme writes the real outline color before this is
+                -- called. Do not save our temporary white render color.
+                if colorDistance(stroke.Color, Color3.new(1, 1, 1)) > 0.01 then
+                    state.OriginalColor = stroke.Color
+                end
+            end
+        end
+    end
+
     local function refresh()
-        local intensity = math.clamp(tonumber(Library.Settings.GradientIntensity) or 28, 0, 100)
+        scanAll()
+
+        local intensity = math.clamp(
+            tonumber(Library.Settings.GradientIntensity) or 28,
+            0,
+            100
+        )
         local enabled = Library.Settings.GradientsEnabled == true and intensity > 0
         local sequence = buildSequence()
         local baseRotation = tonumber(Library.Settings.GradientRotation) or 25
-
-        syncTracked()
 
         for stroke, state in pairs(tracked) do
             if stroke and stroke.Parent and state.Gradient and state.Gradient.Parent then
@@ -137,20 +199,19 @@ return function(Library)
                 end
             end
         end
-
-        for _, gradient in ipairs(Library.GradientObjects or {}) do
-            if gradient and gradient.Parent then
-                gradient.Enabled = false
-            end
-        end
-
-        if not enabled and type(Library.RefreshTheme) == "function" then
-            Library:RefreshTheme()
-        end
     end
 
     function Library:RefreshGradients()
         refresh()
+    end
+
+    if type(rawRefreshTheme) == "function" then
+        function Library:RefreshTheme(...)
+            local result = rawRefreshTheme(self, ...)
+            refreshOriginalColors()
+            refresh()
+            return result
+        end
     end
 
     if type(rawImportConfig) == "function" then
@@ -161,54 +222,48 @@ return function(Library)
         end
     end
 
+    scanAll()
     refresh()
 
     connections[#connections + 1] = Root.DescendantAdded:Connect(function(object)
-        if object:IsA("UIStroke") then
-            task.defer(function()
-                if object.Parent and isOutlineStroke(object) then
-                    ensureGradient(object)
-                    refresh()
-                end
-            end)
-        end
-    end)
-
-    connections[#connections + 1] = RunService.RenderStepped:Connect(function(dt)
-        if Library.Unloaded then return end
-
-        syncTimer = syncTimer + dt
-        if syncTimer >= 0.25 then
-            syncTimer = 0
-            syncTracked()
-        end
-
-        local intensity = math.clamp(tonumber(Library.Settings.GradientIntensity) or 28, 0, 100)
-        if Library.Settings.GradientsEnabled ~= true or intensity <= 0 then
+        if not object:IsA("UIStroke") then
             return
         end
 
-        local sequence = buildSequence()
-        local baseRotation = tonumber(Library.Settings.GradientRotation) or 25
-        local speed = math.clamp(tonumber(Library.Settings.GradientSpeed) or 24, 0, 180)
+        task.defer(function()
+            if object.Parent and isGradientStroke(object) then
+                ensureGradient(object)
+                refresh()
+            end
+        end)
+    end)
 
-        if Library.Settings.GradientAnimated then
-            phase = (phase + speed * dt) % 360
-        end
+    -- Only transforms move every frame. ColorSequence construction happens on
+    -- settings/theme changes, eliminating the old slideshow-like update path.
+    connections[#connections + 1] = RunService.RenderStepped:Connect(function(dt)
+        if Library.Unloaded then return end
+        if Library.Settings.GradientsEnabled ~= true then return end
+        if Library.Settings.GradientAnimated ~= true then return end
+        if (tonumber(Library.Settings.GradientIntensity) or 0) <= 0 then return end
+
+        local speed = math.clamp(tonumber(Library.Settings.GradientSpeed) or 24, 0, 180)
+        if speed <= 0 then return end
+
+        phase = phase + dt * (speed / 24) * 1.35
+        local baseRotation = tonumber(Library.Settings.GradientRotation) or 25
+        local rotationWave = math.sin(phase * 0.55) * 28
+        local offsetX = math.sin(phase) * 0.32
+        local offsetY = math.cos(phase * 0.72) * 0.06
 
         for stroke, state in pairs(tracked) do
             if stroke and stroke.Parent and state.Gradient and state.Gradient.Parent then
-                stroke.Color = Color3.new(1, 1, 1)
-                state.Gradient.Enabled = true
-                state.Gradient.Color = sequence
-
-                if Library.Settings.GradientAnimated then
-                    state.Gradient.Rotation = (baseRotation + phase) % 360
-                    local radians = math.rad(phase)
-                    state.Gradient.Offset = Vector2.new(math.sin(radians) * 0.06, 0)
-                else
-                    state.Gradient.Rotation = baseRotation
-                    state.Gradient.Offset = Vector2.new(0, 0)
+                -- Main-window strokes are invisible while the menu is closed,
+                -- so do not spend frame time animating them.
+                if not (Library.Main and stroke:IsDescendantOf(Library.Main) and not Library.MenuVisible) then
+                    stroke.Color = Color3.new(1, 1, 1)
+                    state.Gradient.Enabled = true
+                    state.Gradient.Rotation = baseRotation + rotationWave
+                    state.Gradient.Offset = Vector2.new(offsetX, offsetY)
                 end
             end
         end
@@ -222,6 +277,7 @@ return function(Library)
         for stroke, state in pairs(tracked) do
             if stroke and stroke.Parent then
                 stroke.Color = state.OriginalColor
+                stroke:SetAttribute("E17OutlineGradient", nil)
             end
             if state.Gradient and state.Gradient.Parent then
                 state.Gradient:Destroy()
@@ -230,9 +286,7 @@ return function(Library)
 
         Library.RefreshGradients = rawRefreshGradients
         Library.RegisterGradient = rawRegisterGradient
+        Library.RefreshTheme = rawRefreshTheme
         Library.ImportConfig = rawImportConfig
-        if type(rawRefreshGradients) == "function" then
-            pcall(function() rawRefreshGradients(Library) end)
-        end
     end
 end
