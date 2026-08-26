@@ -1,5 +1,6 @@
 -- Experiment 17 UI Library v22
--- Logical bootstrap: core builds the base GUI, modules install optional/settings features.
+-- Core bootstrap. The base UI engine is assembled from internal v22 core source windows;
+-- optional/runtime feature systems live in modules/.
 
 local REPO = "https://raw.githubusercontent.com/GasterNoCopyAble/Experiment17_GuiLib/main/src/v22/"
 local compiler = loadstring or (getgenv and getgenv().loadstring)
@@ -25,12 +26,12 @@ local function loadRemote(path)
     return chunk()
 end
 
-local assembleLegacy = loadRemote("core/LegacyAssembler.luau")
-if type(assembleLegacy) ~= "function" then
-    error("[Experiment17] LegacyAssembler did not return a bootstrap function")
+local assembleCore = loadRemote("core/SourceAssembler.luau")
+if type(assembleCore) ~= "function" then
+    error("[Experiment17] SourceAssembler did not return a bootstrap function")
 end
 
-local Library = assembleLegacy()
+local Library = assembleCore()
 if type(Library) ~= "table" then
     error("[Experiment17] Core did not return Library")
 end
