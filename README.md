@@ -17,7 +17,7 @@ local Library = loadstring(game:HttpGet(
 - Project split into logical `core/` and `modules/`
 - Main GUI bootstrap lives in `src/v22/core/Main.luau`
 - The stable base UI engine now lives entirely under `src/v22/core/`
-- `core/SourceAssembler.luau` reconstructs the internal v22 core source snapshot from `core/source/windowXX.luau`
+- `core/SourceAssembler.luau` reconstructs the internal v22 core source snapshot from `core/source/partXX.luau`
 - The runtime no longer accesses any `src/v21/` path and the old v21 directory is removed
 - Mobile, sliders, RGB, gradients, and tile pages are separate modules
 - Smaller mobile watermark text/shell
@@ -41,9 +41,9 @@ Experiment17_GuiLib/
         │   ├── Main.luau
         │   ├── SourceAssembler.luau
         │   └── source/
-        │       ├── window01.luau
+        │       ├── part01.luau
         │       ├── ...
-        │       └── window29.luau
+        │       └── part29.luau
         └── modules/
             ├── Mobile.luau
             ├── Sliders.luau
