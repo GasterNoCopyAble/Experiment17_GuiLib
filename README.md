@@ -15,8 +15,10 @@ local Library = loadstring(game:HttpGet(
 ## v22 changes
 
 - Project split into logical `core/` and `modules/`
-- Main GUI bootstrap moved to `src/v22/core/Main.luau`
-- Legacy v21 source-window assembler isolated in `core/LegacyAssembler.luau`
+- Main GUI bootstrap lives in `src/v22/core/Main.luau`
+- The stable base UI engine now lives entirely under `src/v22/core/`
+- `core/SourceAssembler.luau` reconstructs the internal v22 core source snapshot from `core/source/windowXX.luau`
+- The runtime no longer accesses any `src/v21/` path and the old v21 directory is removed
 - Mobile, sliders, RGB, gradients, and tile pages are separate modules
 - Smaller mobile watermark text/shell
 - Slider handle no longer has the bright white outline
@@ -24,6 +26,7 @@ local Library = loadstring(game:HttpGet(
 - Gradients are applied to outline strokes with a white base, so colors are no longer tinted by the previous stroke color
 - Gradient motion is updated continuously each rendered frame instead of looking like a slideshow
 - Tile controls redesigned as direct tab content with pages, image tiles, captions below tiles, and configurable tiles-per-page
+- Old `src/v21/partXX.luau` source windows and `LegacyAssembler.luau` were removed from the active repository structure
 
 ## Repository layout
 
@@ -33,12 +36,14 @@ Experiment17_GuiLib/
 ├── README.md
 ├── Contact.txt
 └── src/
-    ├── v21/
-    │   └── part01.luau ... part29.luau
     └── v22/
         ├── core/
         │   ├── Main.luau
-        │   └── LegacyAssembler.luau
+        │   ├── SourceAssembler.luau
+        │   └── source/
+        │       ├── window01.luau
+        │       ├── ...
+        │       └── window29.luau
         └── modules/
             ├── Mobile.luau
             ├── Sliders.luau
@@ -47,7 +52,7 @@ Experiment17_GuiLib/
             └── Tiles.luau
 ```
 
-`Experiment17.lua` is intentionally tiny. It loads `core/Main.luau`; core builds the base GUI and then installs the v22 modules.
+`Experiment17.lua` is intentionally tiny. It loads `core/Main.luau`; `Main.luau` builds the v22 base through `core/SourceAssembler.luau` and then installs the feature modules. There is no `src/v21/` runtime dependency anymore.
 
 ---
 
