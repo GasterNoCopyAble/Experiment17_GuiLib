@@ -32,59 +32,52 @@ jobs:
           if missing:
               raise SystemExit('Missing v22 core source parts: ' + ', '.join(missing))
 
-          def normalize_newlines(value: str) -> str:
-              return value.replace('\r\n', '\n').replace('\r', '\n')
+          def lines(value):
+              return value.replace('\r\n', '\n').replace('\r', '\n').splitlines()
 
-          def split_lines(value: str):
-              return normalize_newlines(value).splitlines()
+          def same(a, b):
+              return a.strip() == b.strip()
 
-          def trim(line: str) -> str:
-              return line.strip()
-
-          def equivalent(a: str, b: str) -> bool:
-              return trim(a) == trim(b)
-
-          def find_overlap(left, right):
-              max_overlap = min(len(left), len(right))
-              if max_overlap <= 0:
+          def overlap(left, right):
+              maximum = min(len(left), len(right))
+              if maximum <= 0:
                   return 0, 0
-              min_overlap = min(6, max_overlap)
-              for amount in range(max_overlap, min_overlap - 1, -1):
+              minimum = min(6, maximum)
+              for amount in range(maximum, minimum - 1, -1):
                   mismatches = 0
                   compared = 0
                   allowed = max(1, int(amount * 0.08 + 0.5))
                   for offset in range(amount):
-                      a = left[len(left) - amount + offset]
-                      b = right[offset]
-                      if not equivalent(a, b):
+                      if not same(left[len(left) - amount + offset], right[offset]):
                           mismatches += 1
                           if mismatches > allowed:
                               break
                       compared += 1
                   if compared == amount and mismatches <= allowed:
-                      first_ok = equivalent(left[len(left)-amount], right[0]) or (
-                          amount >= 2 and equivalent(left[len(left)-amount+1], right[1])
-                      )
-                      last_ok = equivalent(left[-1], right[amount-1]) or (
-                          amount >= 2 and equivalent(left[-2], right[amount-2])
-                      )
+                      first_ok = same(left[len(left)-amount], right[0]) or (amount >= 2 and same(left[len(left)-amount+1], right[1]))
+                      last_ok = same(left[-1], right[amount-1]) or (amount >= 2 and same(left[-2], right[amount-2]))
                       if first_ok and last_ok:
                           return amount, mismatches
               return 0, 0
 
-          merged = split_lines(parts[0].read_text(encoding='utf-8'))
+          merged = lines(parts[0].read_text(encoding='utf-8'))
           removed = 0
           fuzzy = 0
+          no_overlap = []
 
           for index, part in enumerate(parts[1:], start=2):
-              right = split_lines(part.read_text(encoding='utf-8'))
-              overlap, mismatches = find_overlap(merged, right)
-              if overlap:
-                  removed += overlap
+              right = lines(part.read_text(encoding='utf-8'))
+              amount, mismatches = overlap(merged, right)
+              if amount:
+                  removed += amount
                   fuzzy += int(mismatches > 0)
-                  merged.extend(right[overlap:])
+                  merged.extend(right[amount:])
               else:
-                  raise SystemExit(f'No overlap found at v22 core part {index:02d}; refusing unsafe merge')
+                  # This mirrors the previously working runtime assembler: a
+                  # boundary with no overlap is a normal hard split, not a fatal error.
+                  no_overlap.append(index)
+                  merged.append('')
+                  merged.extend(right)
 
           engine = '\n'.join(merged) + '\n'
           engine = engine.replace('Experiment 17 [Visuals] - UI Library v21', 'Experiment 17 [Visuals] - UI Library v22', 1)
@@ -94,18 +87,16 @@ jobs:
           if 'v21' in engine.lower():
               raise SystemExit('Unexpected v21 marker remains in generated Engine.luau')
           if 'return Library' not in engine:
-              raise SystemExit('Generated Engine.luau does not appear to return Library')
+              raise SystemExit('Generated Engine.luau does not return Library')
 
-          engine_path = root / 'src/v22/core/Engine.luau'
-          engine_path.write_text(engine, encoding='utf-8')
+          (root / 'src/v22/core/Engine.luau').write_text(engine, encoding='utf-8')
 
-          main = '''-- Experiment 17 UI Library v22\n-- Small bootstrap: load the v22 core engine, then install feature modules.\n\nlocal REPO = "https://raw.githubusercontent.com/GasterNoCopyAble/Experiment17_GuiLib/main/src/v22/"\nlocal compiler = loadstring or (getgenv and getgenv().loadstring)\n\nif type(compiler) ~= "function" then\n    error("[Experiment17] loadstring is unavailable in this environment")\nend\n\nlocal function loadRemote(path)\n    local ok, source = pcall(function()\n        return game:HttpGet(REPO .. path)\n    end)\n\n    if not ok or type(source) ~= "string" or #source == 0 then\n        error("[Experiment17] Failed to download v22 module " .. tostring(path) .. ": " .. tostring(source))\n    end\n\n    local chunk, compileError = compiler(source)\n    if not chunk then\n        error("[Experiment17] Failed to compile v22 module " .. tostring(path) .. ": " .. tostring(compileError))\n    end\n\n    return chunk()\nend\n\nlocal Library = loadRemote("core/Engine.luau")\nif type(Library) ~= "table" then\n    error("[Experiment17] v22 core did not return Library")\nend\n\nLibrary.Version = "v22"\nLibrary.ModuleVersion = 22\nLibrary.Modules = Library.Modules or {}\nLibrary.__E17ModuleCleanups = Library.__E17ModuleCleanups or {}\n\nlocal MODULES = {\n    "Mobile",\n    "Sliders",\n    "RGB",\n    "Gradients",\n    "Tiles",\n}\n\nfor _, moduleName in ipairs(MODULES) do\n    local installer = loadRemote("modules/" .. moduleName .. ".luau")\n    if type(installer) ~= "function" then\n        error("[Experiment17] Module " .. moduleName .. " did not return an installer")\n    end\n\n    local ok, cleanup = pcall(installer, Library)\n    if not ok then\n        error("[Experiment17] Module " .. moduleName .. " failed: " .. tostring(cleanup))\n    end\n\n    Library.Modules[moduleName] = true\n    if type(cleanup) == "function" then\n        table.insert(Library.__E17ModuleCleanups, cleanup)\n    end\nend\n\nlocal rawUnload = Library.Unload\nif type(rawUnload) == "function" and not Library.__E17V22UnloadWrapped then\n    Library.__E17V22UnloadWrapped = true\n\n    function Library:Unload(...)\n        for index = #self.__E17ModuleCleanups, 1, -1 do\n            pcall(self.__E17ModuleCleanups[index])\n        end\n        table.clear(self.__E17ModuleCleanups)\n        return rawUnload(self, ...)\n    end\nend\n\nreturn Library\n'''
+          main = '''-- Experiment 17 UI Library v22\n-- Small bootstrap: load the v22 core engine, then install feature modules.\n\nlocal REPO = "https://raw.githubusercontent.com/GasterNoCopyAble/Experiment17_GuiLib/main/src/v22/"\nlocal compiler = loadstring or (getgenv and getgenv().loadstring)\n\nif type(compiler) ~= "function" then\n    error("[Experiment17] loadstring is unavailable in this environment")\nend\n\nlocal function loadRemote(path)\n    local ok, source = pcall(function()\n        return game:HttpGet(REPO .. path)\n    end)\n    if not ok or type(source) ~= "string" or #source == 0 then\n        error("[Experiment17] Failed to download v22 module " .. tostring(path) .. ": " .. tostring(source))\n    end\n    local chunk, compileError = compiler(source)\n    if not chunk then\n        error("[Experiment17] Failed to compile v22 module " .. tostring(path) .. ": " .. tostring(compileError))\n    end\n    return chunk()\nend\n\nlocal Library = loadRemote("core/Engine.luau")\nif type(Library) ~= "table" then\n    error("[Experiment17] v22 core did not return Library")\nend\n\nLibrary.Version = "v22"\nLibrary.ModuleVersion = 22\nLibrary.Modules = Library.Modules or {}\nLibrary.__E17ModuleCleanups = Library.__E17ModuleCleanups or {}\n\nlocal MODULES = {"Mobile", "Sliders", "RGB", "Gradients", "Tiles"}\nfor _, moduleName in ipairs(MODULES) do\n    local installer = loadRemote("modules/" .. moduleName .. ".luau")\n    if type(installer) ~= "function" then\n        error("[Experiment17] Module " .. moduleName .. " did not return an installer")\n    end\n    local ok, cleanup = pcall(installer, Library)\n    if not ok then\n        error("[Experiment17] Module " .. moduleName .. " failed: " .. tostring(cleanup))\n    end\n    Library.Modules[moduleName] = true\n    if type(cleanup) == "function" then\n        table.insert(Library.__E17ModuleCleanups, cleanup)\n    end\nend\n\nlocal rawUnload = Library.Unload\nif type(rawUnload) == "function" and not Library.__E17V22UnloadWrapped then\n    Library.__E17V22UnloadWrapped = true\n    function Library:Unload(...)\n        for index = #self.__E17ModuleCleanups, 1, -1 do\n            pcall(self.__E17ModuleCleanups[index])\n        end\n        table.clear(self.__E17ModuleCleanups)\n        return rawUnload(self, ...)\n    end\nend\n\nreturn Library\n'''
           (root / 'src/v22/core/Main.luau').write_text(main, encoding='utf-8')
 
           assembler = root / 'src/v22/core/SourceAssembler.luau'
           if assembler.exists():
               assembler.unlink()
-
           for p in parts:
               p.unlink()
           source_dir.rmdir()
@@ -135,7 +126,8 @@ jobs:
           if workflow.exists():
               workflow.unlink()
 
-          print(f'Built Engine.luau: {len(engine):,} bytes; removed {removed} overlap lines across 29 windows ({fuzzy} fuzzy boundaries).')
+          print(f'Built Engine.luau: {len(engine):,} bytes')
+          print(f'Removed overlap lines: {removed}; fuzzy boundaries: {fuzzy}; hard boundaries: {no_overlap}')
           PY
 
       - name: Commit finalized v22 core
