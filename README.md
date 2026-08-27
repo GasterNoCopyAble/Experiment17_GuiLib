@@ -36,8 +36,6 @@ Library.Legacy         -- true
 - Dynamic RGB color-picker state support
 - Styled scrollbars with extra spacing from tab/page content
 - Redesigned tile pages with top/bottom separators and compact pagination
-- Hidden Legacy interaction details are intentionally undocumented
-- Small release-only runtime helpers are lightly source-packed; this is deterrence/cleanup, not cryptographic protection
 
 ## Repository layout
 
@@ -268,9 +266,9 @@ Experiment17/
 
 Built-in languages include English, Russian, Ukrainian, Spanish, German, French, Portuguese, Polish, and Turkish. Unsupported locales fall back to English.
 
-## Source / release note
+## Source note
 
-Legacy is a client-side UI library. Any code delivered to the client can ultimately be inspected or modified. Release packing can make casual searching and copying less convenient, but sensitive secrets, authentication material, or authoritative security checks should never be stored only in this client source.
+Legacy is a client-side UI library. Any code delivered to the client can ultimately be inspected or modified, so sensitive secrets, authentication material, or authoritative security checks should never live only in this client source.
 
 ## Contact
 
