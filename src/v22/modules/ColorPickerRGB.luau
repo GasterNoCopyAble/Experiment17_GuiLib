@@ -11,6 +11,7 @@ return function(Library)
     local controlCount = -1
     local phaseSeed = 0
     local accumulator = 0
+    local rawApplyThemePreset = Library.ApplyThemePreset
 
     local THEME_FLAGS = {
         UI_AccentColor = "Accent",
@@ -116,7 +117,27 @@ return function(Library)
         end
     end
 
+    local function disableGradientPickerRGB()
+        local controls = Library.ControlsByFlag or {}
+        for _, flag in ipairs({"UI_GradientColorA", "UI_GradientColorB"}) do
+            local control = controls[flag]
+            if control and type(control.SetRGBMode) == "function" then
+                control:SetRGBMode(false)
+            end
+        end
+    end
+
     scanControls()
+
+    -- A named theme/gradient pair is authoritative. If a custom gradient color
+    -- was left in RGB mode, selecting a pair turns that hidden mode off instead
+    -- of having it switch the gradient back to Custom on the next frame.
+    if type(rawApplyThemePreset) == "function" then
+        function Library:ApplyThemePreset(name, ...)
+            disableGradientPickerRGB()
+            return rawApplyThemePreset(self, name, ...)
+        end
+    end
 
     connections[#connections+1] = RunService.RenderStepped:Connect(function(dt)
         if Library.Unloaded then return end
@@ -187,6 +208,9 @@ return function(Library)
             if state.Badge and state.Badge.Parent then
                 state.Badge:Destroy()
             end
+        end
+        if rawApplyThemePreset then
+            Library.ApplyThemePreset = rawApplyThemePreset
         end
         Library.RGBColorPickers = nil
     end
