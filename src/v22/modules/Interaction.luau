@@ -98,8 +98,8 @@ return function(Library)
         end
     end
 
-    connections[#connections+1] = UIS.InputBegan:Connect(function(input, processed)
-        if Library.Unloaded or processed then return end
+    connections[#connections+1] = UIS.InputBegan:Connect(function(input)
+        if Library.Unloaded then return end
         if input.UserInputType ~= Enum.UserInputType.Touch
             and input.UserInputType ~= Enum.UserInputType.MouseButton1
         then
