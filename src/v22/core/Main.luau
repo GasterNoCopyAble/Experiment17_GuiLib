@@ -15,10 +15,12 @@ local function loadRemote(path)
     if not ok or type(source) ~= "string" or #source == 0 then
         error("[Experiment17] Failed to download v22 module " .. tostring(path) .. ": " .. tostring(source))
     end
+
     local chunk, compileError = compiler(source)
     if not chunk then
         error("[Experiment17] Failed to compile v22 module " .. tostring(path) .. ": " .. tostring(compileError))
     end
+
     return chunk()
 end
 
@@ -32,16 +34,32 @@ Library.ModuleVersion = 22
 Library.Modules = Library.Modules or {}
 Library.__E17ModuleCleanups = Library.__E17ModuleCleanups or {}
 
-local MODULES = {"Mobile", "Sliders", "RGB", "Gradients", "Tiles"}
+-- Order matters:
+-- Mobile establishes responsive sizing first, Themes replaces the base palettes,
+-- RGB/Gradients consume those palettes, Interaction arbitrates drag/input,
+-- Scrolling styles page rails, and Tiles decorates the final tab objects.
+local MODULES = {
+    "Mobile",
+    "Sliders",
+    "Themes",
+    "RGB",
+    "Gradients",
+    "Interaction",
+    "Scrolling",
+    "Tiles",
+}
+
 for _, moduleName in ipairs(MODULES) do
     local installer = loadRemote("modules/" .. moduleName .. ".luau")
     if type(installer) ~= "function" then
         error("[Experiment17] Module " .. moduleName .. " did not return an installer")
     end
+
     local ok, cleanup = pcall(installer, Library)
     if not ok then
         error("[Experiment17] Module " .. moduleName .. " failed: " .. tostring(cleanup))
     end
+
     Library.Modules[moduleName] = true
     if type(cleanup) == "function" then
         table.insert(Library.__E17ModuleCleanups, cleanup)
@@ -51,6 +69,7 @@ end
 local rawUnload = Library.Unload
 if type(rawUnload) == "function" and not Library.__E17V22UnloadWrapped then
     Library.__E17V22UnloadWrapped = true
+
     function Library:Unload(...)
         for index = #self.__E17ModuleCleanups, 1, -1 do
             pcall(self.__E17ModuleCleanups[index])
