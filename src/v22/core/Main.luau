@@ -39,8 +39,9 @@ Library.__E17ModuleCleanups = Library.__E17ModuleCleanups or {}
 
 -- Order matters:
 -- Mobile establishes responsive sizing first. Themes owns the paired legacy
--- palettes, RGB/Gradients consume them, ColorPickerRGB adds the hidden dynamic
--- color mode, then interaction/scrolling/tiles finish the presentation layer.
+-- palettes, RGB/Gradients consume them, ColorPickerRGB decorates swatches,
+-- Runtime applies late compatibility hooks, then interaction/scrolling/tiles
+-- finish the presentation layer.
 local MODULES = {
     "Mobile",
     "Sliders",
@@ -48,6 +49,7 @@ local MODULES = {
     "RGB",
     "Gradients",
     "ColorPickerRGB",
+    "Runtime",
     "Interaction",
     "Scrolling",
     "Tiles",
