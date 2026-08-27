@@ -1,4 +1,4 @@
--- Experiment 17 UI Library v22
+-- Experiment 17 Legacy UI Library v22
 -- Small bootstrap: load the v22 core engine, then install feature modules.
 
 local REPO = "https://raw.githubusercontent.com/GasterNoCopyAble/Experiment17_GuiLib/main/src/v22/"
@@ -31,19 +31,23 @@ end
 
 Library.Version = "v22"
 Library.ModuleVersion = 22
+Library.UIFamily = "Legacy"
+Library.Legacy = true
+Library.DisplayVersion = "Legacy v22"
 Library.Modules = Library.Modules or {}
 Library.__E17ModuleCleanups = Library.__E17ModuleCleanups or {}
 
 -- Order matters:
--- Mobile establishes responsive sizing first, Themes replaces the base palettes,
--- RGB/Gradients consume those palettes, Interaction arbitrates drag/input,
--- Scrolling styles page rails, and Tiles decorates the final tab objects.
+-- Mobile establishes responsive sizing first. Themes owns the paired legacy
+-- palettes, RGB/Gradients consume them, ColorPickerRGB adds the hidden dynamic
+-- color mode, then interaction/scrolling/tiles finish the presentation layer.
 local MODULES = {
     "Mobile",
     "Sliders",
     "Themes",
     "RGB",
     "Gradients",
+    "ColorPickerRGB",
     "Interaction",
     "Scrolling",
     "Tiles",
